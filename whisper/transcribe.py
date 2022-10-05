@@ -166,7 +166,6 @@ def transcribe(
             }
         )
 
-        segment_callback(all_segments) if segment_callback else None
         if verbose:
             print(f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}")
 
@@ -241,6 +240,8 @@ def transcribe(
             if not condition_on_previous_text or result.temperature > 0.5:
                 # do not feed the prompt tokens if a high temperature was used
                 prompt_reset_since = len(all_tokens)
+
+            segment_callback(all_segments) if segment_callback else None
 
             # update progress bar
             pbar.update(min(num_frames, seek) - previous_seek_value)
