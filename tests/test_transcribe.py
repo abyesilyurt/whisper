@@ -7,6 +7,7 @@ import torch
 import whisper
 from whisper.utils import write_vtt
 from whisper.tokenizer import get_tokenizer
+from whisper.utils import WriteVTT, get_writer
 
 
 def test_transcribe():
@@ -63,3 +64,26 @@ def test_transcribe_callback():
                 timing_checked = True
 
     assert timing_checked
+
+
+def segment_callback(segments):
+    with io.StringIO() as file:
+        writer: WriteVTT = get_writer("vtt", file.name)
+        writer.write_result(segments, file)
+        vtt = file.getvalue()
+        assert vtt
+
+
+def test_transcribe_callback():
+    model = whisper.load_model("tiny.en")
+    audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
+
+    result = model.transcribe(
+        audio_path, language="en", temperature=0.0, segment_callback=segment_callback
+    )
+    assert result["language"] == "en"
+
+    transcription = result["text"].lower()
+    assert "my fellow americans" in transcription
+    assert "your country" in transcription
+    assert "do for you" in transcription

@@ -49,6 +49,7 @@ def transcribe(
     word_timestamps: bool = False,
     prepend_punctuations: str = "\"'“¿([{-",
     append_punctuations: str = "\"'.。,，!！?？:：”)]}、",
+    segment_callback: Optional[callable] = None,
     **decode_options,
 ):
     """
@@ -374,6 +375,7 @@ def transcribe(
 
             # update progress bar
             pbar.update(min(content_frames, seek) - previous_seek)
+            segment_callback(all_segments) if segment_callback else None
 
     return dict(
         text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
