@@ -373,6 +373,8 @@ def transcribe(
                 # do not feed the prompt tokens if a high temperature was used
                 prompt_reset_since = len(all_tokens)
 
+            segment_callback(all_segments) if segment_callback else None
+
             # update progress bar
             pbar.update(min(content_frames, seek) - previous_seek)
             segment_callback(all_segments) if segment_callback else None
