@@ -7,9 +7,9 @@ import whisper
 from whisper.utils import write_vtt
 
 
-@pytest.mark.parametrize('model_name', whisper.available_models())
-def test_transcribe(model_name: str):
-    model = whisper.load_model(model_name).cuda()
+def test_transcribe():
+    model_name = "base"
+    model = whisper.load_model(model_name)
     audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
 
     language = "en" if model_name.endswith(".en") else None
