@@ -236,27 +236,36 @@ def transcribe(
             if (
                 len(consecutive) > 0
             ):  # if the output contains two consecutive timestamp tokens
+                if ended_with_single_timestamp := timestamp_tokens[-2:].tolist() == [
+                    False,
+                    True,
+                ]:
+                    consecutive = consecutive.tolist() + [len(tokens)]
                 last_slice = 0
                 for current_slice in consecutive:
                     sliced_tokens = tokens[last_slice:current_slice]
-                    start_timestamp_position = (
+                    start_timestamp_pos = (
                         sliced_tokens[0].item() - tokenizer.timestamp_begin
                     )
-                    end_timestamp_position = (
+                    end_timestamp_pos = (
                         sliced_tokens[-1].item() - tokenizer.timestamp_begin
                     )
                     add_segment(
-                        start=timestamp_offset
-                        + start_timestamp_position * time_precision,
-                        end=timestamp_offset + end_timestamp_position * time_precision,
+                        start=timestamp_offset + start_timestamp_pos * time_precision,
+                        end=timestamp_offset + end_timestamp_pos * time_precision,
                         text_tokens=sliced_tokens[1:-1],
                         result=result,
                     )
                     last_slice = current_slice
-                last_timestamp_position = (
-                    tokens[last_slice - 1].item() - tokenizer.timestamp_begin
-                )
-                seek += last_timestamp_position * input_stride
+                if ended_with_single_timestamp:
+                    # single timestamp at the end means no speech after the last timestamp.
+                    seek += segment.shape[-1]
+                else:
+                    # otherwise, ignore the unfinished segment and seek to the last timestamp
+                    last_timestamp_pos = (
+                        tokens[last_slice - 1].item() - tokenizer.timestamp_begin
+                    )
+                    seek += last_timestamp_pos * input_stride
                 all_tokens.extend(tokens[: last_slice + 1].tolist())
             else:
                 duration = segment_duration
@@ -266,11 +275,10 @@ def transcribe(
                     and timestamps[-1].item() != tokenizer.timestamp_begin
                 ):
                     # no consecutive timestamps but it has a timestamp; use the last one.
-                    # single timestamp at the end means no speech after the last timestamp.
-                    last_timestamp_position = (
+                    last_timestamp_pos = (
                         timestamps[-1].item() - tokenizer.timestamp_begin
                     )
-                    duration = last_timestamp_position * time_precision
+                    duration = last_timestamp_pos * time_precision
 
                 add_segment(
                     start=timestamp_offset,
