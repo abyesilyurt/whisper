@@ -1,17 +1,17 @@
 import argparse
 import os
 import warnings
-from typing import Optional, Tuple, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import tqdm
 
 from .audio import (
+    FRAMES_PER_SECOND,
     HOP_LENGTH,
     N_FRAMES,
     SAMPLE_RATE,
-    FRAMES_PER_SECOND,
     log_mel_spectrogram,
     pad_or_trim,
 )
@@ -21,11 +21,11 @@ from .tokenizer import LANGUAGES, TO_LANGUAGE_CODE, get_tokenizer
 from .utils import (
     exact_div,
     format_timestamp,
-    make_safe,
-    optional_int,
-    optional_float,
-    str2bool,
     get_writer,
+    make_safe,
+    optional_float,
+    optional_int,
+    str2bool,
 )
 
 if TYPE_CHECKING:
@@ -370,50 +370,15 @@ def transcribe(
 def cli():
     from . import available_models
 
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parser.add_argument(
-        "audio", nargs="+", type=str, help="audio file(s) to transcribe"
-    )
-    parser.add_argument(
-        "--model",
-        default="small",
-        choices=available_models(),
-        help="name of the Whisper model to use",
-    )
-    parser.add_argument(
-        "--model_dir",
-        type=str,
-        default=None,
-        help="the path to save model files; uses ~/.cache/whisper by default",
-    )
-    parser.add_argument(
-        "--device",
-        default="cuda" if torch.cuda.is_available() else "cpu",
-        help="device to use for PyTorch inference",
-    )
-    parser.add_argument(
-        "--output_dir",
-        "-o",
-        type=str,
-        default=".",
-        help="directory to save the outputs",
-    )
-    parser.add_argument(
-        "--output_format",
-        "-f",
-        type=str,
-        default="all",
-        choices=["txt", "vtt", "srt", "tsv", "json", "all"],
-        help="format of the output file; if not specified, all available formats will be produced",
-    )
-    parser.add_argument(
-        "--verbose",
-        type=str2bool,
-        default=True,
-        help="whether to print out the progress and debug messages",
-    )
+    # fmt: off
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("audio", nargs="+", type=str, help="audio file(s) to transcribe")
+    parser.add_argument("--model", default="small", choices=available_models(), help="name of the Whisper model to use")
+    parser.add_argument("--model_dir", type=str, default=None, help="the path to save model files; uses ~/.cache/whisper by default")
+    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu", help="device to use for PyTorch inference")
+    parser.add_argument("--output_dir", "-o", type=str, default=".", help="directory to save the outputs")
+    parser.add_argument("--output_format", "-f", type=str, default="all", choices=["txt", "vtt", "srt", "tsv", "json", "all"], help="format of the output file; if not specified, all available formats will be produced")
+    parser.add_argument("--verbose", type=str2bool, default=True, help="whether to print out the progress and debug messages")
 
     parser.add_argument(
         "--task",
@@ -484,54 +449,15 @@ def cli():
         help="whether to perform inference in fp16; True by default",
     )
 
-    parser.add_argument(
-        "--temperature_increment_on_fallback",
-        type=optional_float,
-        default=0.2,
-        help="temperature to increase when falling back when the decoding fails to meet either of the thresholds below",
-    )
-    parser.add_argument(
-        "--compression_ratio_threshold",
-        type=optional_float,
-        default=2.4,
-        help="if the gzip compression ratio is higher than this value, treat the decoding as failed",
-    )
-    parser.add_argument(
-        "--logprob_threshold",
-        type=optional_float,
-        default=-1.0,
-        help="if the average log probability is lower than this value, treat the decoding as failed",
-    )
-    parser.add_argument(
-        "--no_speech_threshold",
-        type=optional_float,
-        default=0.6,
-        help="if the probability of the <|nospeech|> token is higher than this value AND the decoding has failed due to `logprob_threshold`, consider the segment as silence",
-    )
-    parser.add_argument(
-        "--word_timestamps",
-        type=str2bool,
-        default=False,
-        help="(experimental) extract word-level timestamps and refine the results based on them",
-    )
-    parser.add_argument(
-        "--prepend_punctuations",
-        type=str,
-        default="\"'“¿([{-",
-        help="if word_timestamps is True, merge these punctuation symbols with the next word",
-    )
-    parser.add_argument(
-        "--append_punctuations",
-        type=str,
-        default="\"'.。,，!！?？:：”)]}、",
-        help="if word_timestamps is True, merge these punctuation symbols with the previous word",
-    )
-    parser.add_argument(
-        "--threads",
-        type=optional_int,
-        default=0,
-        help="number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS",
-    )
+    parser.add_argument("--temperature_increment_on_fallback", type=optional_float, default=0.2, help="temperature to increase when falling back when the decoding fails to meet either of the thresholds below")
+    parser.add_argument("--compression_ratio_threshold", type=optional_float, default=2.4, help="if the gzip compression ratio is higher than this value, treat the decoding as failed")
+    parser.add_argument("--logprob_threshold", type=optional_float, default=-1.0, help="if the average log probability is lower than this value, treat the decoding as failed")
+    parser.add_argument("--no_speech_threshold", type=optional_float, default=0.6, help="if the probability of the <|nospeech|> token is higher than this value AND the decoding has failed due to `logprob_threshold`, consider the segment as silence")
+    parser.add_argument("--word_timestamps", type=str2bool, default=False, help="(experimental) extract word-level timestamps and refine the results based on them")
+    parser.add_argument("--prepend_punctuations", type=str, default="\"\'“¿([{-", help="if word_timestamps is True, merge these punctuation symbols with the next word")
+    parser.add_argument("--append_punctuations", type=str, default="\"\'.。,，!！?？:：”)]}、", help="if word_timestamps is True, merge these punctuation symbols with the previous word")
+    parser.add_argument("--threads", type=optional_int, default=0, help="number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS")
+    # fmt: on
 
     args = parser.parse_args().__dict__
     model_name: str = args.pop("model")
