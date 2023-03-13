@@ -6,6 +6,7 @@ import torch
 
 import whisper
 from whisper.utils import write_vtt
+from whisper.tokenizer import get_tokenizer
 
 
 def test_transcribe():
@@ -46,6 +47,11 @@ def test_transcribe_callback():
     assert "my fellow americans" in transcription
     assert "your country" in transcription
     assert "do for you" in transcription
+    tokenizer = get_tokenizer(model.is_multilingual)
+    all_tokens = [t for s in result["segments"] for t in s["tokens"]]
+    assert tokenizer.decode(all_tokens) == result["text"]
+    assert tokenizer.decode_with_timestamps(all_tokens).startswith("<|0.00|>")
+
     timing_checked = False
     for segment in result["segments"]:
         for timing in segment["words"]:
@@ -53,7 +59,6 @@ def test_transcribe_callback():
             if timing["word"].strip(" ,") == "Americans":
                 assert timing["start"] <= 1.8
                 assert timing["end"] >= 1.8
-                print(timing)
                 timing_checked = True
 
     assert timing_checked
