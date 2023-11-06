@@ -48,6 +48,7 @@ def test_transcribe_callback():
     assert "your country" in transcription
     assert "do for you" in transcription
     tokenizer = get_tokenizer(model.is_multilingual)
+    tokenizer = get_tokenizer(model.is_multilingual, num_languages=model.num_languages)
     all_tokens = [t for s in result["segments"] for t in s["tokens"]]
     assert tokenizer.decode(all_tokens) == result["text"]
     assert tokenizer.decode_with_timestamps(all_tokens).startswith("<|0.00|>")
