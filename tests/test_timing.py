@@ -52,7 +52,7 @@ def test_dtw(N: int, M: int):
     assert np.allclose(trace, dtw_trace)
 
 
-@pytest.mark.requires_cuda
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
 @pytest.mark.parametrize("N, M", sizes)
 def test_dtw_cuda_equivalence(N: int, M: int):
     x_numpy = np.random.randn(N, M).astype(np.float32)
@@ -84,7 +84,7 @@ def test_median_filter(shape):
         assert np.allclose(filtered, scipy_filtered)
 
 
-@pytest.mark.requires_cuda
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
 @pytest.mark.parametrize("shape", shapes)
 def test_median_filter_equivalence(shape):
     x = torch.randn(*shape)
